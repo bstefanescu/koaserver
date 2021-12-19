@@ -1,6 +1,6 @@
 {
   "name": "koaserver",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A web server built on top of Koa, featuring advanced routing, a lazy body reader and customizable error handling.",
   "main": "lib/index.js",
   "files": [
