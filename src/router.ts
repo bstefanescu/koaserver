@@ -21,7 +21,7 @@ export type RouterGuard = (ctx: Context) => boolean;
 
 export interface Route {
     match(ctx: Context, path: string): boolean;
-    dispatch(ctx: Context): Promise<any>;
+    dispatch(ctx: Context): Promise<unknown>;
 }
 
 
@@ -43,11 +43,13 @@ class EndpointRoute implements Route {
     method: string | null | undefined;
     matcher: PathMatcher;
     target: RouteTarget;
+    thisArg: any;
 
-    constructor(method: string | null | undefined, matcher: PathMatcher, target: RouteTarget) {
+    constructor(method: string | null | undefined, matcher: PathMatcher, target: RouteTarget, thisArg?: any) {
         this.method = method ? method.toUpperCase() : null;
         this.matcher = matcher;
         this.target = target;
+        this.thisArg = thisArg;
     }
 
     match(ctx: Context, path: string): boolean {
@@ -55,16 +57,22 @@ class EndpointRoute implements Route {
             return false;
         }
         const match = this.matcher(path);
-        if (match && match !== true) {
+        if (match === true) {
+            return true;
+        } else if (match) {
             ctx.$router.update(match.params);
             return true;
         } else {
-            return match;
+            return false;
         }
     }
 
     dispatch(ctx: Context) {
-        return this.target(ctx);
+        try {
+            return Promise.resolve(this.target.call(this.thisArg, ctx));
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
 }
 
@@ -106,31 +114,6 @@ class ServeRoute implements Route {
     };
 }
 
-
-
-export type RouterSetup = (resource: any, router: Router) => void;
-export class RouterMeta {
-    setupChain: RouterSetup[] = [];
-    webRoot?: string;
-    errorhandlerOpts?: ErrorHandlerOpts;
-
-    constructor(webRoot?: string) {
-        this.webRoot = webRoot;
-    }
-
-    setup(resource: any, router: Router) {
-        if (this.webRoot) {
-            router.webRoot = this.webRoot;
-        }
-        if (this.errorhandlerOpts) {
-            router.errorHandlerOpts = this.errorhandlerOpts;
-        }
-        for (const setup of this.setupChain) {
-            setup(resource, router);
-        }
-    }
-}
-
 type RouterOpts = {
     webRoot?: string,
     errorHandlers?: ErrorHandlerOpts
@@ -162,7 +145,17 @@ export class Router implements Route {
         ctx.throw(404);
     }
 
-    async _dispatch(ctx: Context) {
+    _findRoute(ctx: Context): Route | null {
+        const path = ctx.$router.path;
+        for (const route of this.routes) {
+            if (route.match(ctx, path)) {
+                return route;
+            }
+        }
+        return null;
+    }
+
+    _dispatch(ctx: Context): unknown {
         const path = ctx.$router.path;
         for (const route of this.routes) {
             if (route.match(ctx, path)) {
@@ -172,7 +165,7 @@ export class Router implements Route {
         return this.notFound(ctx);
     }
 
-    async dispatch(ctx: Context) {
+    async dispatch(ctx: Context): Promise<unknown> {
         try {
             if (this.guard) {
                 if (!await this.guard(ctx)) {
@@ -181,13 +174,17 @@ export class Router implements Route {
             }
             if (this.filtersFn) {
                 return await this.filtersFn(ctx, () => {
-                    return this._dispatch(ctx);
+                    try {
+                        return Promise.resolve(this._dispatch(ctx));
+                    } catch (err) {
+                        return Promise.reject(err);
+                    }
                 });
             } else {
                 return await this._dispatch(ctx);
             }
         } catch (err) {
-            return this.onError(ctx, err);
+            return await this.onError(ctx, err);
         }
     }
 
@@ -207,7 +204,7 @@ export class Router implements Route {
     }
 
     onError(ctx: Context, err: any): void {
-        errorHandler(ctx, err, { htmlRoot: joinPath(this.webRoot, '/errors'), ...this.errorHandlerOpts });
+        return errorHandler(ctx, err, { htmlRoot: joinPath(this.webRoot, '/errors'), ...this.errorHandlerOpts });
     }
 
     withGuard(guard: RouterGuard): Router {
@@ -225,9 +222,9 @@ export class Router implements Route {
         return this;
     }
 
-    route(method: string | null | undefined, path: string, target: RouteTarget) {
+    route(method: string | null | undefined, path: string, target: RouteTarget, thisArg?: any) {
         const matcher = path && path !== '/' ? createPathMatcher(path) : (path: string) => !path || path === '/';
-        this.routes.push(new EndpointRoute(method, matcher, target));
+        this.routes.push(new EndpointRoute(method, matcher, target, thisArg));
     }
 
     routeAll(path: string, target: RouteTarget) {
@@ -243,10 +240,11 @@ export class Router implements Route {
     mount(prefix: string, target?: any) {
         const router = new Router(prefix, { webRoot: this.webRoot });
         if (target) {
-            if (target.__router_meta__) {
-                (target.__router_meta__ as RouterMeta).setup(target, router);
-            } else if (target.prototype.__router_meta__) {
-                (target.prototype.__router_meta__ as RouterMeta).setup(new target(), router);
+            if (target instanceof Resource) {
+                target.setup(router);
+            } else if (target.prototype instanceof Resource) {
+                const resource = new target();
+                resource.setup(router);
             } else {
                 throw new Error('Unsupported router resource: ' + target);
             }
@@ -271,28 +269,41 @@ export class Router implements Route {
         });
     }
 
-    get(pattern: string, target: RouteTarget) {
-        this.route('GET', pattern, target);
+    get(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('GET', pattern, target, thisArg);
     }
-    head(pattern: string, target: RouteTarget) {
-        this.route('HED', pattern, target);
+    head(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('HED', pattern, target, thisArg);
     }
-    options(pattern: string, target: RouteTarget) {
-        this.route('OPTIONS', pattern, target);
+    options(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('OPTIONS', pattern, target, thisArg);
     }
-    put(pattern: string, target: RouteTarget) {
-        this.route('PUT', pattern, target);
+    put(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('PUT', pattern, target, thisArg);
     }
-    post(pattern: string, target: RouteTarget) {
-        this.route('POST', pattern, target);
+    post(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('POST', pattern, target, thisArg);
     }
-    delete(pattern: string, target: RouteTarget) {
-        this.route('DELETE', pattern, target);
+    delete(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('DELETE', pattern, target, thisArg);
     }
-    patch(pattern: string, target: RouteTarget) {
-        this.route('PATCH', pattern, target);
+    patch(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('PATCH', pattern, target, thisArg);
     }
-    trace(pattern: string, target: RouteTarget) {
-        this.route('TRACE', pattern, target);
+    trace(pattern: string, target: RouteTarget, thisArg?: any) {
+        this.route('TRACE', pattern, target, thisArg);
+    }
+}
+
+export type RouterSetup = (resource: any, router: Router) => void;
+export abstract class Resource {
+    setup(router: Router) {
+        // __setup prototype field is created when using decorators
+        const setupChain = (this as any).__setup;
+        if (Array.isArray(setupChain)) {
+            for (const setup of setupChain) {
+                setup(this, router);
+            }
+        }
     }
 }

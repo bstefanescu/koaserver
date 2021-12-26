@@ -1,50 +1,52 @@
-import { ErrorHandlerOpts } from "./error";
-import { Router, RouterMeta } from "./router";
+import { RouterSetup } from ".";
+import { Router } from "./router";
 
 
-function getOrCreateMeta(target: any): RouterMeta {
-    let meta = target.__router_meta__;
-    if (!meta) {
-        target.__router_meta__ = meta = new RouterMeta();
+function getOrCreateSetupChain(target: any): RouterSetup[] {
+    let setupChain = target.__setup;
+    if (!setupChain) {
+        target.__setup = setupChain = [];
     }
-    return meta;
+    return setupChain;
 }
 
-export function resource(opts: { webRoot?: string, errorHandlers?: ErrorHandlerOpts } = {}) {
-    return (ctor: Function) => {
-        const meta = getOrCreateMeta(ctor.prototype);
-        meta.webRoot = opts.webRoot;
-        meta.errorhandlerOpts = opts.errorHandlers;
-    };
-}
 
 export function mount(path: string) {
     return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
         const isGetter = !!descriptor.get;
-        getOrCreateMeta(target).setupChain.push((resource: any, router: Router) => {
+        getOrCreateSetupChain(target).push((resource: any, router: Router) => {
             const value = resource[propertyKey];
             router.mount(path, isGetter ? value : value());
         });
     }
 }
-// an alias for mount
-export { mount as path };
 
-export function serve(path: string) {    //?TODO
+export function serve(path: string) {
     return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
         const isGetter = !!descriptor.get;
-        getOrCreateMeta(target).setupChain.push((resource: any, router: Router) => {
+        getOrCreateSetupChain(target).push((resource: any, router: Router) => {
             const value = resource[propertyKey];
-            router.mount(path, isGetter ? value : value());
+            router.serve(path, isGetter ? value : value());
         });
     }
+}
+
+export function use(target: any, propertyKey: string, descriptor: PropertyDescriptor): void {
+    getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+        router.use(resource[propertyKey].bind(resource));
+    });
+}
+
+export function guard(target: any, propertyKey: string, descriptor: PropertyDescriptor): void {
+    getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+        router.withGuard(resource[propertyKey].bind(resource));
+    });
 }
 
 function _route(method: string, path: string) {
     return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-        //TODO wrap with promise to be sur a promise is returned?
-        getOrCreateMeta(target).setupChain.push((resource: any, router: Router) => {
-            router.route(method, path, resource[propertyKey].bind(resource));
+        getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+            router.route(method, path, resource[propertyKey], resource);
         });
     }
 }

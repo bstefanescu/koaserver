@@ -1,11 +1,7 @@
-import { ErrorHandlerOpts } from "./error";
-export declare function resource(opts?: {
-    webRoot?: string;
-    errorHandlers?: ErrorHandlerOpts;
-}): (ctor: Function) => void;
 export declare function mount(path: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
-export { mount as path };
 export declare function serve(path: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+export declare function use(target: any, propertyKey: string, descriptor: PropertyDescriptor): void;
+export declare function guard(target: any, propertyKey: string, descriptor: PropertyDescriptor): void;
 export declare function route(method: string, path?: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 export declare function get(path?: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 export declare function post(path?: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
