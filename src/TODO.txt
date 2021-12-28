@@ -1,3 +1,0 @@
-support subclasses
-koa-send opts not resolved from user project
-filters must be run before guard. (the guard is expected to protected endpoints after filters like auth one was ran)
