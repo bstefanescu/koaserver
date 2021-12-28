@@ -1,4 +1,5 @@
-export { default as KoaServer } from './koa-server';
+import KoaServer from './koa-server';
+export { KoaServer };
 export * from './router';
 export * from './error';
 export * from './path-matchers';

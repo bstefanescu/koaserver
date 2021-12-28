@@ -35,7 +35,6 @@ export declare class Router implements Route {
     constructor(prefix?: string, opts?: RouterOpts);
     match(ctx: Context, path: string): boolean;
     notFound(ctx: Context): void;
-    _findRoute(ctx: Context): Route | null;
     _dispatch(ctx: Context): unknown;
     dispatch(ctx: Context): Promise<unknown>;
     middleware(): (ctx: Context, next: Next) => Promise<any>;

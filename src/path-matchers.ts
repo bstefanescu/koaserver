@@ -32,9 +32,7 @@ export function createRegexPathMatcher(pattern: string): MatchFunction {
 export function createPathPrefixMatcher(prefix: string): PrefixMatcher {
     // normalize prefix
     prefix = normalizePath(prefix);
-    if (prefix === '/') {
-        return createRootPrefixMatcher();
-    } else if (prefix.indexOf(':') === -1 || prefix.indexOf('(') === -1) {
+    if (prefix.indexOf(':') === -1 || prefix.indexOf('(') === -1) {
         return createSimplePrefixMatcher(prefix);
     } else {
         return createRegexpPrefixMatcher(prefix);
@@ -49,6 +47,9 @@ function createRootPrefixMatcher(): PrefixMatcher {
 }
 
 export function createSimplePrefixMatcher(prefix: string): PrefixMatcher {
+    if (prefix === '/') {
+        return createRootPrefixMatcher();
+    }
     return (ctx: Context, path: string) => {
         if (path.startsWith(prefix) && (path.length === prefix.length || path[prefix.length] === '/')) {
             ctx.$router.path = path.substring(prefix.length) || '/';

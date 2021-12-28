@@ -145,16 +145,6 @@ export class Router implements Route {
         ctx.throw(404);
     }
 
-    _findRoute(ctx: Context): Route | null {
-        const path = ctx.$router.path;
-        for (const route of this.routes) {
-            if (route.match(ctx, path)) {
-                return route;
-            }
-        }
-        return null;
-    }
-
     _dispatch(ctx: Context): unknown {
         const path = ctx.$router.path;
         for (const route of this.routes) {
@@ -172,7 +162,11 @@ export class Router implements Route {
                     ctx.throw(401);
                 }
             }
-            if (this.filtersFn) {
+            if (this.filters.length > 0) {
+                // lazy build filters since we can add filter after registering the router
+                if (!this.filtersFn) {
+                    this.filtersFn = compose(this.filters);
+                }
                 return await this.filtersFn(ctx, () => {
                     try {
                         return Promise.resolve(this._dispatch(ctx));
@@ -188,10 +182,8 @@ export class Router implements Route {
         }
     }
 
+
     middleware() {
-        if (this.filters.length > 0) {
-            this.filtersFn = compose(this.filters);
-        }
         return (ctx: Context, next: Next) => {
             const $router = ctx.$router = new RouterContext(ctx);
             if (this.match(ctx, $router.path)) {
