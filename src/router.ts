@@ -145,23 +145,23 @@ export class Router implements Route {
         ctx.throw(404);
     }
 
-    _dispatch(ctx: Context): unknown {
+    async _dispatch(ctx: Context): Promise<unknown> {
+        if (this.guard) {
+            if (!await this.guard(ctx)) {
+                ctx.throw(401);
+            }
+        }
         const path = ctx.$router.path;
         for (const route of this.routes) {
             if (route.match(ctx, path)) {
-                return route.dispatch(ctx);
+                return await route.dispatch(ctx);
             }
         }
-        return this.notFound(ctx);
+        return await this.notFound(ctx);
     }
 
     async dispatch(ctx: Context): Promise<unknown> {
         try {
-            if (this.guard) {
-                if (!await this.guard(ctx)) {
-                    ctx.throw(401);
-                }
-            }
             if (this.filters.length > 0) {
                 // lazy build filters since we can add filter after registering the router
                 if (!this.filtersFn) {
