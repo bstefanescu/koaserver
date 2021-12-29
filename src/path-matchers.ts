@@ -70,7 +70,9 @@ function createRegexpPrefixMatcher(prefix: string): PrefixMatcher {
     return (ctx: Context, path: string) => {
         const m = matcher(path);
         if (m) {
-            ctx.$router.path = '/' + (m.params as any)._.join('/');
+            const params = m.params as any;
+            ctx.$router.path = params._ ? '/' + params._.join('/') : '/';
+            ctx.$router.update(params);
             return true;
         }
         return false;
