@@ -50,7 +50,6 @@ export default class KoaServer extends Router {
 
     onServerListening() {
         this.server!.address()
-        //console.log(`App listening on port ${port}\nPress Ctrl+C to quit.`);
     }
 
     async start(port: number, opts: {

@@ -65,6 +65,12 @@ export declare class Router implements Route {
 }
 export declare type RouterSetup = (resource: any, router: Router) => void;
 export declare abstract class Resource {
+    /**
+     * Setup the router coresponding to this resource.
+     * When overwriting you must always call `super.setup(router);` otherwise
+     * the decortators will not be applied to the resource
+     * @param router
+     */
     setup(router: Router): void;
 }
 export {};

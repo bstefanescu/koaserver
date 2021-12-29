@@ -99,7 +99,12 @@ class ServeRoute implements Route {
 
     }
     async dispatch(ctx: Context): Promise<any> {
-        let path = ctx.$router.path || '.'; // trailing path
+        let path = ctx.$router.path || '/'; // trailing path
+        if (path === '/') { // exact match
+            path = this.target; // rewrite exact path
+        } else {
+            path = this.target + path;
+        }
         try {
             await send(ctx,
                 path.startsWith('/') ? '.' + path : path,
@@ -289,13 +294,22 @@ export class Router implements Route {
 
 export type RouterSetup = (resource: any, router: Router) => void;
 export abstract class Resource {
+    /**
+     * Setup the router coresponding to this resource.
+     * When overwriting you must always call `super.setup(router);` otherwise
+     * the decortators will not be applied to the resource
+     * @param router
+     */
     setup(router: Router) {
-        // __setup prototype field is created when using decorators
-        const setupChain = (this as any).__setup;
-        if (Array.isArray(setupChain)) {
-            for (const setup of setupChain) {
-                setup(this, router);
+        let ctor = this.constructor as any;
+        while (ctor && ctor !== Resource) {
+            // setup decorators registered on ctor
+            if (Array.isArray(ctor.$routerSetup)) {
+                for (const setup of ctor.$routerSetup) {
+                    setup(this, router);
+                }
             }
+            ctor = Object.getPrototypeOf(ctor);
         }
     }
 }

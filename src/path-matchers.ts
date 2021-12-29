@@ -51,9 +51,15 @@ export function createSimplePrefixMatcher(prefix: string): PrefixMatcher {
         return createRootPrefixMatcher();
     }
     return (ctx: Context, path: string) => {
-        if (path.startsWith(prefix) && (path.length === prefix.length || path[prefix.length] === '/')) {
-            ctx.$router.path = path.substring(prefix.length) || '/';
-            return true;
+        if (path.startsWith(prefix)) {
+            if (path.length === prefix.length) {
+                // exact match
+                ctx.$router.path = '/';
+                return true;
+            } else if (path[prefix.length] === '/') {
+                ctx.$router.path = path.substring(prefix.length);
+                return true;
+            }
         }
         return false;
     }

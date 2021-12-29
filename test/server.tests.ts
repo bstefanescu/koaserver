@@ -1,22 +1,12 @@
-import mocha from 'mocha';
 import assert from 'assert';
 import request from 'supertest';
 import Koa, { Context } from 'koa';
 import { KoaServer } from '../src';
-
-const server = new KoaServer();
+import server from './server';
 
 server.get('/', async (ctx: Context) => {
     ctx.body = 'hello';
 });
-
-before(() => {
-    server.start(9098);
-});
-
-after(() => {
-    server.stop();
-})
 
 describe('Test koaserver accept requests', () => {
     it('Accept requests', done => {

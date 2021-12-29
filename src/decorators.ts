@@ -3,18 +3,22 @@ import { Router } from "./router";
 
 
 function getOrCreateSetupChain(target: any): RouterSetup[] {
-    let setupChain = target.__setup;
-    if (!setupChain) {
-        target.__setup = setupChain = [];
+    if (!target.hasOwnProperty('$routerSetup')) {
+        Object.defineProperty(target, '$routerSetup', {
+            value: [],
+            configurable: false,
+            enumerable: false,
+            writable: false
+        });
     }
-    return setupChain;
+    return target.$routerSetup;
 }
 
 
 export function mount(path: string) {
     return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
         const isGetter = !!descriptor.get;
-        getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+        getOrCreateSetupChain(target.constructor).push((resource: any, router: Router) => {
             const value = resource[propertyKey];
             router.mount(path, isGetter ? value : value());
         });
@@ -24,7 +28,7 @@ export function mount(path: string) {
 export function serve(path: string) {
     return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
         const isGetter = !!descriptor.get;
-        getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+        getOrCreateSetupChain(target.constructor).push((resource: any, router: Router) => {
             const value = resource[propertyKey];
             router.serve(path, isGetter ? value : value());
         });
@@ -32,20 +36,24 @@ export function serve(path: string) {
 }
 
 export function use(target: any, propertyKey: string, descriptor: PropertyDescriptor): void {
-    getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+    getOrCreateSetupChain(target.constructor).push((resource: any, router: Router) => {
         router.use(resource[propertyKey].bind(resource));
     });
 }
 
 export function guard(target: any, propertyKey: string, descriptor: PropertyDescriptor): void {
-    getOrCreateSetupChain(target).push((resource: any, router: Router) => {
-        router.withGuard(resource[propertyKey].bind(resource));
+    getOrCreateSetupChain(target.constructor).push((resource: any, router: Router) => {
+        // we only register it if not other guard was registered
+        // this enables overwriting guards from derived classes
+        if (!router.guard) {
+            router.withGuard(resource[propertyKey].bind(resource));
+        }
     });
 }
 
 function _route(method: string, path: string) {
     return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-        getOrCreateSetupChain(target).push((resource: any, router: Router) => {
+        getOrCreateSetupChain(target.constructor).push((resource: any, router: Router) => {
             router.route(method, path, resource[propertyKey], resource);
         });
     }
