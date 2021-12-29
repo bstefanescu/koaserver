@@ -1,6 +1,6 @@
 {
   "name": "@koa-stack/server",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A web server built on top of Koa, featuring advanced routing, a lazy body reader and customizable error handling.",
   "main": "lib/index.js",
   "files": [
