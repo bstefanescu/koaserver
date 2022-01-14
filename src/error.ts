@@ -105,41 +105,7 @@ function getContentType(ctx: Context, ctypes?: string | string[]) {
 }
 
 
-/**
- * Allowed options: {
- *  dir,
- *  json,
- *  html,
- *  text,
- *  renderHTML
- * }
- * @param {*} opts
- * @returns
- */
-export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerOpts = {}) {
-    // When dealing with cross-globals a normal `instanceof` check doesn't work properly.
-    // See https://github.com/koajs/koa/issues/1466
-    // We can probably remove it once jest fixes https://github.com/facebook/jest/issues/2549.
-    const isNativeError =
-        Object.prototype.toString.call(err) === '[object Error]' ||
-        err instanceof Error;
-    if (!isNativeError) err = new Error(`non-error thrown: ${err}`);
-
-    let headerSent = false;
-    if (ctx.headerSent || !ctx.writable) {
-        headerSent = err.headerSent = true;
-    }
-
-    // delegate
-    ctx.app.emit('error', err, ctx);
-
-    // nothing we can do here other
-    // than delegate to the app-level
-    // handler and log.
-    if (headerSent) {
-        return;
-    }
-
+function handleResponse(ctx: Context, err: Error | any, opts: ErrorHandlerOpts = {}): ErrorInfo {
     const { res } = ctx;
 
     // first unset all headers
@@ -206,4 +172,52 @@ export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerO
     ctx.status = statusCode;
     ctx.length = Buffer.isBuffer(content) ? content.length : Buffer.byteLength(content!);
     res.end(content);
+
+    return info;
+}
+
+/**
+ * Allowed options: {
+ *  dir,
+ *  json,
+ *  html,
+ *  text,
+ *  renderHTML
+ * }
+ * @param {*} opts
+ * @returns
+ */
+export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerOpts = {}) {
+    // When dealing with cross-globals a normal `instanceof` check doesn't work properly.
+    // See https://github.com/koajs/koa/issues/1466
+    // We can probably remove it once jest fixes https://github.com/facebook/jest/issues/2549.
+    const isNativeError =
+        Object.prototype.toString.call(err) === '[object Error]' ||
+        err instanceof Error;
+    if (!isNativeError) err = new Error(`non-error thrown: ${err}`);
+
+    let headerSent = false;
+    if (ctx.headerSent || !ctx.writable) {
+        headerSent = err.headerSent = true;
+    }
+
+    let delegate = false;
+    if (headerSent) {
+        // nothing we can do here other
+        // than delegate to the app-level
+        // handler and log.
+        delegate = true;
+    } else {
+        const info = handleResponse(ctx, err, opts);
+        // only delegate to koa unknownn or >= 500 http errors (i.e. real errors)
+        if (info.status && info.status >= 500) {
+            delegate = true;
+        }
+    }
+
+    if (delegate) {
+        // delegate tp koa error handler
+        ctx.app.emit('error', err, ctx);
+    }
+
 }

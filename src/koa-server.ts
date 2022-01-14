@@ -49,7 +49,7 @@ export default class KoaServer extends Router {
     }
 
     onServerListening() {
-        this.server!.address()
+        // do nothing: you can print a server started message
     }
 
     async start(port: number, opts: {
