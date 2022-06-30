@@ -28,6 +28,8 @@ export interface ErrorHandlerOpts {
     xml?: ErrorFormatter,
     html?: ErrorFormatter,
     text?: ErrorFormatter,
+    // if log is specified does not delegate errors to koa error handler
+    log?: (ctx: Context, error: Error | object, info?: ErrorInfo | undefined) => void
 }
 
 function readFile(file: string) {
@@ -213,13 +215,17 @@ export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerO
         delegate = true;
     } else {
         const info = handleResponse(ctx, err, opts);
+        opts.log && opts.log(ctx, err, info);
         // only delegate to koa unknownn or >= 500 http errors (i.e. real errors)
         if (info.status && info.status >= 500) {
             delegate = true;
         }
     }
 
-    if (delegate) {
+    opts.log && opts.log(ctx, err);
+
+    // do not delegate if log is specified
+    if (!opts.log && delegate) {
         // delegate tp koa error handler
         ctx.app.emit('error', err, ctx);
     }
