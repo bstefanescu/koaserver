@@ -236,6 +236,8 @@ export class Router implements Route {
      */
     mount(prefix: string, target?: any) {
         const router = new Router(prefix, { webRoot: this.webRoot });
+        // inherit error handling from parent router
+        this.errorHandlerOpts && router.withErrorHandler(this.errorHandlerOpts);
         if (target) {
             if (target instanceof Resource) {
                 target.setup(router);
