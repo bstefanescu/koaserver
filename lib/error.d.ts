@@ -23,6 +23,7 @@ export interface ErrorHandlerOpts {
     xml?: ErrorFormatter;
     html?: ErrorFormatter;
     text?: ErrorFormatter;
+    log?: (ctx: Context, error: Error | object, info?: ErrorInfo | undefined) => void;
 }
 /**
  * Allowed options: {
