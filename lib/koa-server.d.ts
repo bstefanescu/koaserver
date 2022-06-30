@@ -14,7 +14,7 @@ export default class KoaServer extends Router {
      * To be ble to use supertest directly with a KoaServer instance
     */
     address(): string | import("net").AddressInfo | null | undefined;
-    withLazyBody(opts?: LazyBodyOpts): KoaServer;
+    withLazyBody(opts?: LazyBodyOpts): this;
     callback(): (req: http.IncomingMessage | import("http2").Http2ServerRequest, res: http.ServerResponse | import("http2").Http2ServerResponse) => void;
     createServer(): http.Server;
     installExitHooks(): void;

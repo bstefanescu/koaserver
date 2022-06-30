@@ -26,7 +26,7 @@ export default class KoaServer extends Router {
         return this.server && this.server.address();
     }
 
-    withLazyBody(opts?: LazyBodyOpts): KoaServer {
+    withLazyBody(opts?: LazyBodyOpts) {
         LazyBody.install(this.koa, opts);
         return this;
     }

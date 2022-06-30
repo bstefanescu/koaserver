@@ -204,17 +204,17 @@ export class Router implements Route {
         return errorHandler(ctx, err, { htmlRoot: joinPath(this.webRoot, '/errors'), ...this.errorHandlerOpts });
     }
 
-    withGuard(guard: RouterGuard): Router {
+    withGuard(guard: RouterGuard) {
         this.guard = guard;
         return this;
     }
 
-    withErrorHandler(errorHandlerOpts: ErrorHandlerOpts): Router {
+    withErrorHandler(errorHandlerOpts: ErrorHandlerOpts) {
         this.errorHandlerOpts = errorHandlerOpts;
         return this;
     }
 
-    withWebRoot(webRoot: string): Router {
+    withWebRoot(webRoot: string) {
         this.webRoot = webRoot;
         return this;
     }

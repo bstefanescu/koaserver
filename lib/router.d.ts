@@ -39,9 +39,9 @@ export declare class Router implements Route {
     dispatch(ctx: Context): Promise<unknown>;
     middleware(): (ctx: Context, next: Next) => Promise<any>;
     onError(ctx: Context, err: any): void;
-    withGuard(guard: RouterGuard): Router;
-    withErrorHandler(errorHandlerOpts: ErrorHandlerOpts): Router;
-    withWebRoot(webRoot: string): Router;
+    withGuard(guard: RouterGuard): this;
+    withErrorHandler(errorHandlerOpts: ErrorHandlerOpts): this;
+    withWebRoot(webRoot: string): this;
     route(method: string | null | undefined, path: string, target: RouteTarget, thisArg?: any): void;
     routeAll(path: string, target: RouteTarget): void;
     /**
