@@ -207,6 +207,7 @@ export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerO
         headerSent = err.headerSent = true;
     }
 
+    let info;
     let delegate = false;
     if (headerSent) {
         // nothing we can do here other
@@ -214,15 +215,14 @@ export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerO
         // handler and log.
         delegate = true;
     } else {
-        const info = handleResponse(ctx, err, opts);
-        opts.log && opts.log(ctx, err, info);
+        info = handleResponse(ctx, err, opts);
         // only delegate to koa unknownn or >= 500 http errors (i.e. real errors)
         if (info.status && info.status >= 500) {
             delegate = true;
         }
     }
 
-    opts.log && opts.log(ctx, err);
+    opts.log && opts.log(ctx, err, info);
 
     // do not delegate if log is specified
     if (!opts.log && delegate) {
