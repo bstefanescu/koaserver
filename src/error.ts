@@ -110,10 +110,15 @@ function handleResponse(ctx: Context, err: Error | any, opts: ErrorHandlerOpts =
 
     // first unset all headers
     /* istanbul ignore else */
+    const accessControlAllowOrigin = res.getHeader('Access-Control-Allow-Origin');
     if (typeof res.getHeaderNames === 'function') {
         res.getHeaderNames().forEach(name => res.removeHeader(name));
     } else {
         (res as any)._headers = {}; // Node < 7.7
+    }
+    // restore cors header to have the real error sent to the client
+    if (accessControlAllowOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', accessControlAllowOrigin);
     }
 
     // then set those specified
@@ -122,22 +127,21 @@ function handleResponse(ctx: Context, err: Error | any, opts: ErrorHandlerOpts =
     // force text/plain
     ctx.type = 'text';
 
-    let statusCode = err.status || err.statusCode;
+    let statusCode = err.status || err.statusCode || 500;
 
     // ENOENT support
     if ('ENOENT' === err.code) statusCode = 404;
 
     // default to 500
-    let code = statuses.message[statusCode];
-    if (!code) {
-        statusCode = 500;
-        code = statuses.message[statusCode];
+    let errorMsg = statuses.message[statusCode];
+    if (!errorMsg) {
+        errorMsg = statuses.message[500];
     }
 
     const info: ErrorInfo = {
         statusCode: statusCode,
         status: statusCode,
-        error: code,
+        error: errorMsg,
         ctypes: opts.ctypes,
         expose: err.expose || false,
     };

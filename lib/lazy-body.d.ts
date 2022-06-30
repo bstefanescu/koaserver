@@ -2,6 +2,11 @@ import readRawBody from 'raw-body';
 import inflate from 'inflation';
 import formidable from 'formidable';
 import Koa, { Context } from 'koa';
+declare module 'koa' {
+    interface BaseContext {
+        payload: Promise<LazyBody>;
+    }
+}
 export interface OwnOpts {
     formidable?: formidable.Options;
     inflate?: inflate.Options;

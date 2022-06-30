@@ -4,6 +4,12 @@ import qs from 'qs';
 import formidable from 'formidable';
 import Koa, { Context, Request } from 'koa';
 
+declare module 'koa' {
+    interface BaseContext {
+        payload: Promise<LazyBody>
+    }
+}
+
 export interface OwnOpts {
     formidable?: formidable.Options,
     inflate?: inflate.Options,
@@ -164,6 +170,15 @@ export class LazyBody {
             // be able to work along code using koa2-formidable (wich sets the body property pf the request)
             set(body) {
                 this._body = body;
+            }
+        });
+        // payload is an alias to request.body
+        Object.defineProperty(koa.context, 'payload', {
+            get() {
+                return this.request.body;
+            },
+            set(body) {
+                this.request.body = body;
             }
         });
     }
