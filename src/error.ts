@@ -200,7 +200,12 @@ export function errorHandler(ctx: Context, err: Error | any, opts: ErrorHandlerO
     const isNativeError =
         Object.prototype.toString.call(err) === '[object Error]' ||
         err instanceof Error;
-    if (!isNativeError) err = new Error(`non-error thrown: ${err}`);
+    if (!isNativeError) {
+        const errObj = err;
+        err = new Error(`non-error thrown: ${JSON.stringify(err)}`);
+        err.data = errObj;
+        console.error('non-error thrown', errObj);
+    }
 
     let headerSent = false;
     if (ctx.headerSent || !ctx.writable) {
